@@ -1,1 +1,67 @@
 <!--Carga datos desde localStorage, muestra destacados-->
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Dashboard - Tienda Online</title>
+    <link rel="stylesheet" href="assets/css/style.css"> 
+</head>
+<body>
+    <header>
+        <h1>Bienvenido al Dashboard</h1>
+        <button id="logoutButton">Cerrar Sesión</button> 
+    </header>
+    
+    <main>
+        <section id="featured-products">
+            <h2>Productos Destacados</h2>
+            <div id="products-container" class="product-grid">
+                </div>
+        </section>
+    </main>
+
+    <script src="js/StorageManager.js"></script>
+    <script src="js/ProductCard.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', initDashboard);
+
+        function initDashboard() {
+            // 1. VERIFICAR AUTENTICACIÓN
+            if (!StorageManager.getToken()) {
+                // Redirigir si no hay token (usuario no autenticado)
+                window.location.href = 'login.html';
+                return;
+            }
+
+            // 2. CARGAR DATOS DESDE LOCALSTORAGE
+            const storeData = StorageManager.getStoreData();
+            if (!storeData || !storeData.products) {
+                console.error("Error: No se pudieron cargar los datos de la tienda desde LocalStorage.");
+                // Opcional: Cerrar sesión si los datos están corruptos
+                // StorageManager.clearAll();
+                // window.location.href = 'login.html';
+                return;
+            }
+
+            // 3. RENDERIZAR PRODUCTOS DESTACADOS
+            // Filtrar productos donde 'featured' o 'destacado' es true
+            const featuredProducts = storeData.products.filter(p => p.featured === true); // Usa 'destacado' si ese es el nombre de tu campo JSON
+            const container = document.getElementById('products-container');
+            
+            featuredProducts.forEach(product => {
+                const card = ProductCard.create(product);
+                container.appendChild(card);
+            });
+            
+            // 4. CONFIGURAR CIERRE DE SESIÓN
+            document.getElementById('logoutButton').addEventListener('click', handleLogout);
+        }
+
+        function handleLogout() {
+            // Eliminar token, productos y carrito del LocalStorage [cite: 134-138]
+            StorageManager.clearAll(); 
+            window.location.href = 'login.html';
+        }
+    </script>
+</body>
+</html>
