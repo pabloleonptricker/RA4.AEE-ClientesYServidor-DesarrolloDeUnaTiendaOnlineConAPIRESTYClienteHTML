@@ -1,3 +1,44 @@
 {
-    "_comment": "Productos y categorías ."
+    "categories": [
+        {
+            "id": 1,
+            "name": "Electrónica"
+        },
+        {
+            "id": 2,
+            "name": "Libros"
+        }
+    ],
+    "products": [
+        {
+            "id": 101,
+            "name": "Smartphone Pro X",
+            "price": 799.99,
+            "description": "El último modelo con la mejor cámara.",
+            "stock": 50,
+            "featured": true,
+            "image_url": "assets/img/prod_101.jpg",
+            "id_categoria": 1
+        },
+        {
+            "id": 202,
+            "name": "La Guía del Desarrollador",
+            "price": 29.50,
+            "description": "Aprende a programar en JavaScript y PHP.",
+            "stock": 100,
+            "featured": false,
+            "image_url": "assets/img/prod_202.jpg",
+            "id_categoria": 2
+        },
+        {
+            "id": 103,
+            "name": "Auriculares Inalámbricos",
+            "price": 99.00,
+            "description": "Sonido de alta fidelidad y batería duradera.",
+            "stock": 30,
+            "featured": true,
+            "image_url": "assets/img/prod_103.jpg",
+            "id_categoria": 1
+        }
+    ]
 }

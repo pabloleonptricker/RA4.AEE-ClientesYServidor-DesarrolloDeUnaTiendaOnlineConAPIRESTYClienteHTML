@@ -1,3 +1,16 @@
 {
-    "_comment": "Usuarios y contraseñas"
+    "users": [
+        {
+            "id": 1,
+            "username": "admin",
+            "password": "password123",  
+            "role": "administrator"
+        },
+        {
+            "id": 2,
+            "username": "cliente",
+            "password": "password456",
+            "role": "customer"
+        }
+    ]
 }
