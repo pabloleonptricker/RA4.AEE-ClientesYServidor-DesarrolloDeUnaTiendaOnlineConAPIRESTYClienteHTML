@@ -1,0 +1,1 @@
+Contiene las clases que modelan las entidades.
