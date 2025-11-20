@@ -1,27 +1,28 @@
 <?php
 
-//Formateo de respuestas HTTP.
-
-
 class ResponseHandler {
     
     /**
-     * Envía una respuesta JSON con el código de estado HTTP.
+     * Envía una respuesta JSON de éxito o error.
      * @param array $data Los datos a devolver.
-     * @param int $statusCode El código de estado HTTP.
+     * @param int $statusCode Código HTTP.
      */
     public static function sendJsonResponse(array $data, int $statusCode = 200): void {
-        header('Content-Type: application/json');
-        // Esto es clave para las respuestas de la API
+        // Establece el código de estado HTTP
         http_response_code($statusCode); 
+        
+        // Establece el encabezado de contenido como JSON
+        header('Content-Type: application/json');
+        
+        // Imprime el JSON y termina la ejecución
         echo json_encode($data);
-        exit(); // Terminamos la ejecución tras enviar la respuesta
+        exit();
     }
-    
+
     /**
-     * Envía una respuesta de error.
+     * Envía una respuesta JSON de error con un mensaje.
      * @param string $message Mensaje de error.
-     * @param int $statusCode Código de estado del error (ej. 401 Unauthorized, 400 Bad Request).
+     * @param int $statusCode Código HTTP de error.
      */
     public static function sendErrorResponse(string $message, int $statusCode = 400): void {
         self::sendJsonResponse([
@@ -30,5 +31,3 @@ class ResponseHandler {
         ], $statusCode);
     }
 }
-
-?>

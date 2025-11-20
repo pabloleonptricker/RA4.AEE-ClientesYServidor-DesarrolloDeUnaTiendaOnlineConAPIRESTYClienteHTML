@@ -1,12 +1,10 @@
 <?php
 
-//Lógica de seguridad: Generación y Verificación de JWT.
+// Incluir la clase Database, ya que AuthService la necesita.
+require_once 'Database.php'; 
 
-// Incluimos Database, ya que AuthService la necesita para leer usuarios
-require_once 'Database.php';
-
-// Clave secreta para firmar el JWT. ¡IMPORTANTE! Usar una clave fuerte.
-define('JWT_SECRET', 'TU_CLAVE_SECRETA_DEBE_SER_MUY_LARGA_Y_COMPLEJA'); 
+// CLAVE SECRETA para la firma del token (¡MUY IMPORTANTE!)
+define('JWT_SECRET', 'ESTA_DEBE_SER_UNA_CLAVE_LARGA_Y_COMPLEJA_Y_SECRETA_123456'); 
 
 class AuthService {
     private Database $db;
@@ -16,82 +14,61 @@ class AuthService {
     }
 
     /**
-     * Verifica las credenciales contra el archivo usuarios.json.
-     * @param string $username
-     * @param string $password
-     * @return array|null Usuario autenticado (sin password) o null si falla.
+     * Verifica las credenciales del usuario.
+     * @return array|null El usuario si es válido, o null si las credenciales son incorrectas.
      */
     public function authenticateUser(string $username, string $password): ?array {
-        $userData = $this->db->readJsonFile('usuarios.json');
-        
-        if ($userData === null || !isset($userData['users'])) {
-            return null; // Error de lectura o formato de datos
+        $users = $this->db->readJsonFile('usuarios.json');
+
+        if ($users === null) {
+            return null; // No se pudieron cargar los usuarios.
         }
 
-        foreach ($userData['users'] as $user) {
-            if ($user['username'] === $username) {
-                // **Validación de Contraseña**: Asumimos password plano.
-                // En un entorno real, usar 'password_verify($password, $user['password_hash'])'
-                if ($user['password'] === $password) {
-                    // Eliminamos la contraseña del objeto usuario antes de devolverlo
-                    unset($user['password']); 
-                    return $user;
-                }
+        foreach ($users['users'] as $user) { // Asumiendo que el JSON tiene una clave 'users'
+            // En un sistema real, la contraseña estaría hasheada
+            if ($user['username'] === $username && $user['password'] === $password) {
+                return $user;
             }
         }
 
-        return null; // Autenticación fallida
+        return null;
     }
 
     /**
-     * Genera un JSON Web Token (JWT) para el usuario.
-     * El Payload incluye los datos del usuario y la expiración.
-     * @param array $user Datos del usuario (id, username, role).
-     * @return string El token JWT.
+     * Genera un token JWT simple (simulación).
+     * @param array $user Datos del usuario.
+     * @return string El token generado.
      */
     public function generateJwt(array $user): string {
-        $issuedAt = time();
-        $expirationTime = $issuedAt + (60 * 60); // Token válido por 1 hora
-        
-        // PAYLOAD (Carga útil): Datos del token
+        $header = [
+            'alg' => 'HS256',
+            'typ' => 'JWT'
+        ];
         $payload = [
-            'iat'  => $issuedAt,              // Issued At: Creado en
-            'exp'  => $expirationTime,        // Expiration Time: Expira en
-            'iss'  => 'tienda-online-api',    // Issuer: Emisor
-            'data' => [                       // Datos del usuario
-                'id' => $user['id'],
-                'username' => $user['username'],
-                'role' => $user['role']
-            ]
+            'user_id' => $user['id'],
+            'username' => $user['username'],
+            'exp' => time() + (60 * 60) // Expira en 1 hora
         ];
 
-        // Header (Tipo y algoritmo)
-        $header = base64_encode(json_encode(['typ' => 'JWT', 'alg' => 'HS256']));
-        $payloadEncoded = base64_encode(json_encode($payload));
-        
-        // Signature (Firma) usando la clave secreta
-        $signature = hash_hmac('sha256', "$header.$payloadEncoded", JWT_SECRET, true);
-        $signatureEncoded = base64_encode($signature);
-        
-        // Estructura final: Header.Payload.Signature
-        return "$header.$payloadEncoded.$signatureEncoded";
+        // Simplificación: Unir los datos para simular un token.
+        return base64_encode(json_encode($header)) . '.' . 
+               base64_encode(json_encode($payload)) . '.' . 
+               md5(JWT_SECRET); // Usar una firma simple
     }
 
     /**
-     * Valida un JWT. Necesario para todos los demás endpoints.
-     * La implementación debe verificar la firma y la expiración.
-     * @param string $jwt El token a validar.
-     * @return array|null Datos del usuario si el token es válido, null si falla.
+     * Valida la firma del token (simulación de validación de JWT).
+     * @param string $token El token a validar.
+     * @return bool True si el token es válido, false en caso contrario.
      */
-    public function validateJwt(string $jwt): ?array {
-        // ... (La implementación de esta función se requiere en carrito.php y productos_vistos.php)
-        // Por ahora, solo es necesario implementarla para que los otros endpoints
-        // puedan validar el token. Su lógica es la inversa de generateJwt.
+    public function validateToken(string $token): bool {
+        $parts = explode('.', $token);
+        if (count($parts) !== 3) {
+            return false;
+        }
+        $signature = $parts[2];
         
-        // [Implementación similar a la parte de generación, pero verificando la firma y 'exp']
-        // ...
-        return null; // Placeholder
+        // Simulación: verificamos que la firma coincida con la firma esperada.
+        return $signature === md5(JWT_SECRET);
     }
 }
-
-?>

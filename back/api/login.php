@@ -1,8 +1,9 @@
 <?php
 
-//Maneja la autenticación y devuelve JWT y la tienda.
+// Maneja la autenticación y devuelve JWT y la tienda.
 
 // Incluimos las clases necesarias desde la carpeta /src
+// Usamos __DIR__ para asegurar rutas absolutas desde el script actual
 require_once __DIR__ . '/../src/Database.php';
 require_once __DIR__ . '/../src/AuthService.php';
 require_once __DIR__ . '/../src/ResponseHandler.php';
@@ -29,16 +30,16 @@ if (empty($username) || empty($password)) {
 $db = new Database();
 $authService = new AuthService($db);
 
-[cite_start]// 4. **Autenticar Usuario** [cite: 50]
+// 4. **Autenticar Usuario**
 $user = $authService->authenticateUser($username, $password);
 
 if ($user === null) {
     RH::sendErrorResponse("Credenciales incorrectas.", 401);
 }
 
-[cite_start]// 5. **Éxito**: Generar JWT y obtener datos de la tienda [cite: 56]
+// 5. **Éxito**: Generar JWT y obtener datos de la tienda
 $jwt = $authService->generateJwt($user);
-$storeData = $db->readJsonFile('tienda.json'); // La información de la tienda se lee de JSON
+$storeData = $db->readJsonFile('tienda.json'); 
 
 if ($storeData === null) {
     RH::sendErrorResponse("Error interno: No se pudo cargar la información de la tienda.", 500);
@@ -48,7 +49,5 @@ if ($storeData === null) {
 RH::sendJsonResponse([
     'success' => true,
     'token' => $jwt,
-    [cite_start]'storeData' => $storeData // Contiene 'categories' y 'products' [cite: 110-114]
+    'storeData' => $storeData // Contiene 'categories' y 'products'
 ], 200);
-
-?>

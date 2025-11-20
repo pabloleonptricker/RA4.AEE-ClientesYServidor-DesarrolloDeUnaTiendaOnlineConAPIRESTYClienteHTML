@@ -1,1 +1,52 @@
 <!--Formulario de autenticación.-->
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Login - Tienda Online</title>
+    <link rel="stylesheet" href="css/style.css"> 
+</head>
+<body>
+    <h1>Iniciar Sesión</h1>
+    <form id="loginForm">
+        <label for="username">Usuario:</label>
+        <input type="text" id="username" name="username" required>
+        
+        <label for="password">Contraseña:</label>
+        <input type="password" id="password" name="password" required>
+        
+        <button type="submit">Entrar</button>
+        <p id="message" style="color: red;"></p>
+    </form>
+
+    <script src="js/StorageManager.js"></script>
+    <script src="js/ApiService.js"></script>
+    <script>
+        // Lógica de la página de Login
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault(); // Detener el envío del formulario tradicional
+            
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            const messageElement = document.getElementById('message');
+            messageElement.textContent = '';
+            
+            try {
+                // Llamar al servicio API
+                const response = await ApiService.login(username, password);
+                
+                // 1. Guardar la respuesta (Token y datos de la tienda) en localStorage [cite: 145, 169]
+                StorageManager.saveAuthData(response.token, response.storeData);
+                
+                // 2. Redirigir al Dashboard [cite: 66]
+                window.location.href = 'dashboard.html';
+
+            } catch (error) {
+                // Mostrar el mensaje de error de autenticación
+                messageElement.textContent = error.message;
+            }
+        });
+    </script>
+</body>
+</html>
