@@ -1,0 +1,1 @@
+//Clase para renderizar un producto en el DOM.

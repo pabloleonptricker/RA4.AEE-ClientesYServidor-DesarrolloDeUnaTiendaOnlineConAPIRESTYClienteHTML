@@ -1,0 +1,1 @@
+//Gestiona el localStorage (Token, Tienda, Carrito, Vistos) .

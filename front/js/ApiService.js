@@ -1,0 +1,1 @@
+//Lógica de la Fetch API, adjunta el JWT.

@@ -1,0 +1,1 @@
+//Lógica específica para la vista del carrito.

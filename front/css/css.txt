@@ -1,0 +1,1 @@
+Contiene los archivos de estilo (debe ser espectacular y responsivo ).
