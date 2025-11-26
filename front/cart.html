@@ -1,1 +1,193 @@
 <!--Muestra el carrito y permite realizar el pedido.-->
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Carrito de Compras - Tienda de Videojuegos</title>
+    <link rel="stylesheet" href="assets/css/style.css"> 
+    <style>
+        .cart-item {
+            border: 1px solid #ccc;
+            padding: 10px;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .item-info h4 {
+            margin-top: 0;
+            color: #3f51b5;
+        }
+        #checkoutButton {
+            padding: 10px 20px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-size: 1.1em;
+            margin-top: 15px;
+        }
+        #checkoutButton:disabled {
+            background-color: #aaa;
+            cursor: not-allowed;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>🛒 Carrito de Compras</h1>
+        <nav>
+            <a href="dashboard.html">Volver a la Tienda</a>
+            <button id="clearCartButton">Vaciar Carrito</button>
+        </nav>
+    </header>
+    
+    <main>
+        <section id="cart-details">
+            <h2>Resumen del Pedido</h2>
+            
+            <div id="cart-items-container">
+                <p id="empty-cart-message" style="text-align: center; margin-top: 20px; display: none;">Tu carrito está vacío.</p>
+            </div>
+
+            <div id="cart-summary" style="margin-top: 30px; padding: 15px; border-top: 2px solid #333;">
+                <h3>Total Estimado: <span id="estimated-total">0.00 €</span></h3>
+                <button id="checkoutButton" disabled>Finalizar Compra</button>
+            </div>
+            
+            <p id="checkout-message" style="margin-top: 10px; font-weight: bold;"></p>
+
+        </section>
+    </main>
+
+    <script src="js/StorageManager.js"></script>
+    <script src="js/ApiService.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', initCartPage);
+
+        // Functión auxiliar para obtener los detalles de un producto por ID desde el storeData
+        function getProductDetails(productId, storeProducts) {
+            return storeProducts.find(p => p.id === productId);
+        }
+
+        function renderCart() {
+            const cartItems = StorageManager.getCart();
+            const storeData = StorageManager.getStoreData();
+            const container = document.getElementById('cart-items-container');
+            const totalElement = document.getElementById('estimated-total');
+            const emptyMessage = document.getElementById('empty-cart-message');
+            const checkoutButton = document.getElementById('checkoutButton');
+
+            container.innerHTML = '';
+            
+            if (!cartItems || cartItems.length === 0 || !storeData || !storeData.products) {
+                emptyMessage.style.display = 'block';
+                totalElement.textContent = '0.00 €';
+                checkoutButton.disabled = true;
+                return;
+            }
+
+            emptyMessage.style.display = 'none';
+            checkoutButton.disabled = false;
+            let estimatedTotal = 0;
+
+            cartItems.forEach(item => {
+                const product = getProductDetails(item.id, storeData.products);
+                
+                if (product) {
+                    const subtotal = product.price * item.quantity;
+                    estimatedTotal += subtotal;
+
+                    const cartItemDiv = document.createElement('div');
+                    cartItemDiv.className = 'cart-item';
+                    cartItemDiv.innerHTML = `
+                        <div class="item-info">
+                            <h4>${product.name} (${product.formato})</h4>
+                            <p>Precio Unitario: ${product.price.toFixed(2)} €</p>
+                            <p>Cantidad: ${item.quantity} | Stock visible: ${product.stock}</p>
+                            <p>Subtotal: <strong>${subtotal.toFixed(2)} €</strong></p>
+                        </div>
+                        <button class="remove-item-btn" data-product-id="${product.id}">Eliminar</button>
+                    `;
+                    container.appendChild(cartItemDiv);
+                }
+            });
+
+            totalElement.textContent = estimatedTotal.toFixed(2) + ' €';
+
+            // Añadir listeners para los botones de eliminar
+            document.querySelectorAll('.remove-item-btn').forEach(button => {
+                button.addEventListener('click', (e) => {
+                    const productId = parseInt(e.target.dataset.productId);
+                    StorageManager.removeFromCart(productId);
+                    renderCart(); // Re-renderizar el carrito
+                });
+            });
+        }
+        
+        async function handleCheckout() {
+            const token = StorageManager.getToken();
+            const cartItems = StorageManager.getCart();
+            const messageElement = document.getElementById('checkout-message');
+            messageElement.textContent = '';
+            
+            if (!token) {
+                messageElement.textContent = 'Error: No estás autenticado.';
+                return;
+            }
+
+            if (cartItems.length === 0) {
+                messageElement.textContent = 'El carrito está vacío.';
+                return;
+            }
+            
+            const checkoutButton = document.getElementById('checkoutButton');
+            checkoutButton.disabled = true;
+            messageElement.textContent = 'Procesando pago y validando stock...';
+            
+            try {
+                // Llama al API para validar el carrito y completar el "pedido"
+                const response = await ApiService.checkout(cartItems, token);
+                
+                // Éxito: El carrito fue validado y el pedido completado por el servidor
+                messageElement.textContent = `✅ Éxito: Pedido validado. El total final del servidor fue de ${response.final_total.toFixed(2)} €.`;
+                messageElement.style.color = 'green';
+                
+                // Limpiar el carrito después de la compra exitosa
+                StorageManager.clearCart(); 
+                renderCart(); // Actualizar la vista a carrito vacío
+
+            } catch (error) {
+                // Error de stock, precio, o autenticación
+                messageElement.textContent = `❌ Error al finalizar la compra: ${error.message}`;
+                messageElement.style.color = 'red';
+                checkoutButton.disabled = false; // Permitir reintento
+            }
+        }
+        
+        function handleClearCart() {
+            if (confirm("¿Estás seguro de que quieres vaciar el carrito?")) {
+                StorageManager.clearCart();
+                renderCart();
+                document.getElementById('checkout-message').textContent = '';
+            }
+        }
+
+        function initCartPage() {
+            // 1. Verificar Autenticación
+            if (!StorageManager.getToken()) {
+                window.location.href = 'login.html';
+                return;
+            }
+            
+            // 2. Renderizar carrito inicialmente
+            renderCart();
+
+            // 3. Configurar listeners
+            document.getElementById('checkoutButton').addEventListener('click', handleCheckout);
+            document.getElementById('clearCartButton').addEventListener('click', handleClearCart);
+        }
+    </script>
+</body>
+</html>

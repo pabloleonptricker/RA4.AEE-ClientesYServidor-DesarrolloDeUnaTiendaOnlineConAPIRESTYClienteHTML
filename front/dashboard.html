@@ -1,67 +1,384 @@
-<!--Carga datos desde localStorage, muestra destacados-->
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
     <meta charset="UTF-8">
-    <title>Dashboard - Tienda Online</title>
-    <link rel="stylesheet" href="assets/css/style.css"> 
+    <title>Dashboard - Tienda de Videojuegos</title>
+    <link rel="stylesheet" href="assets/css/style.css">
+    <style>
+        /* Estilos básicos para que sea funcional */
+        body {
+            font-family: sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f4;
+        }
+
+        header {
+            background: #3f51b5;
+            color: white;
+            padding: 15px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        header h1 {
+            margin: 0;
+            font-size: 1.5em;
+        }
+
+        nav a,
+        header button {
+            color: white;
+            text-decoration: none;
+            margin-left: 20px;
+            background: #5c6bc0;
+            border: none;
+            padding: 8px 12px;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+
+        main {
+            padding: 20px;
+            max-width: 1400px;
+            margin: auto;
+        }
+
+        #filters {
+            margin-bottom: 20px;
+            padding: 15px;
+            background: #e0e0e0;
+            border-radius: 8px;
+        }
+
+        #filters select {
+            padding: 10px;
+            margin-right: 20px;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+        }
+
+        #products-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 20px;
+        }
+
+        .product-card {
+            background: white;
+            border: 1px solid #ddd;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            cursor: pointer;
+        }
+
+        .product-card h3 {
+            color: #3f51b5;
+            margin-top: 0;
+        }
+
+        .product-card p {
+            margin: 5px 0;
+        }
+
+        .product-card .price {
+            font-size: 1.4em;
+            color: #E91E63;
+            font-weight: bold;
+        }
+
+        .product-card .stock {
+            font-size: 0.9em;
+            color: gray;
+        }
+
+        .product-card button {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px;
+            width: 100%;
+            cursor: pointer;
+            border-radius: 4px;
+            margin-top: 10px;
+        }
+
+        .product-card button:hover {
+            background: #45a049;
+        }
+
+        .product-card.featured {
+            border: 3px solid gold;
+            box-shadow: 0 4px 8px rgba(255, 193, 7, 0.5);
+        }
+
+        .cart-item {
+            border-bottom: 1px solid #eee;
+            padding: 10px 0;
+        }
+    </style>
 </head>
+
 <body>
     <header>
-        <h1>Bienvenido al Dashboard</h1>
-        <button id="logoutButton">Cerrar Sesión</button> 
+        <h1>🎮 Tienda de Videojuegos</h1>
+        <nav>
+            <span id="welcome-message"></span>
+            <a href="cart.html">🛒 Carrito (<span id="cart-count">0</span>)</a>
+            <button id="logoutButton">Cerrar Sesión</button>
+        </nav>
     </header>
-    
+
     <main>
-        <section id="featured-products">
-            <h2>Productos Destacados</h2>
-            <div id="products-container" class="product-grid">
-                </div>
+
+        <section id="filters">
+            <label for="category-select">Filtrar por Consola:</label>
+            <select id="category-select">
+                <option value="0">Todas las Consolas</option>
+            </select>
         </section>
+
+        <section id="recent-views-container">
+            <h2>Productos Vistos Recientemente</h2>
+            <div id="recent-products-list" class="product-list">
+                <p id="no-recent-views" style="display: none;">No hay productos vistos recientemente.</p>
+            </div>
+        </section>
+
+        <section id="featured-products">
+            <h2>🔥 Productos Destacados</h2>
+            <div id="featured-container" class="products-container">
+            </div>
+        </section>
+
+        <section id="all-products">
+            <h2>Catálogo Completo</h2>
+            <div id="products-container" class="products-container">
+            </div>
+        </section>
+
     </main>
 
     <script src="js/StorageManager.js"></script>
-    <script src="js/ProductCard.js"></script>
+    <script src="js/ApiService.js"></script>
     <script>
-        document.addEventListener('DOMContentLoaded', initDashboard);
+
+        // Función auxiliar para obtener el nombre de la categoría por ID
+        function getCategoryName(id, categories) {
+            const category = categories.find(c => c.id === id);
+            return category ? category.name : 'Desconocida';
+        }
+
+        // -----------------------------------------------------------------
+        // FUNCIONES DE RENDERIZADO
+        // -----------------------------------------------------------------
+
+        function renderCategories(categories) {
+            const select = document.getElementById('category-select');
+            categories.forEach(category => {
+                const option = document.createElement('option');
+                option.value = category.id;
+                option.textContent = category.name;
+                select.appendChild(option);
+            });
+            // Añadir listener para filtrar
+            select.addEventListener('change', renderProducts);
+        }
+
+        function renderProducts() {
+            const storeData = StorageManager.getStoreData();
+            if (!storeData || !storeData.products || !storeData.categories) return;
+
+            const products = storeData.products;
+            const categories = storeData.categories;
+
+            const categoryId = parseInt(document.getElementById('category-select').value);
+
+            // Filtrar productos por categoría seleccionada
+            const filteredProducts = categoryId === 0
+                ? products
+                : products.filter(p => p.id_categoria === categoryId);
+
+            const allProductsContainer = document.getElementById('products-container');
+            const featuredContainer = document.getElementById('featured-container');
+
+            allProductsContainer.innerHTML = '';
+            featuredContainer.innerHTML = '';
+
+            // Separar productos destacados
+            const featuredProducts = filteredProducts.filter(p => p.featured);
+            const standardProducts = filteredProducts.filter(p => !p.featured);
+
+            // Función para crear la tarjeta de producto
+            const createProductCard = (product) => {
+                const card = document.createElement('div');
+                card.className = 'product-card' + (product.featured ? ' featured' : '');
+                card.dataset.productId = product.id; // Clave para listeners de vistos
+
+                // Buscar nombre de la categoría (consola)
+                const consoleName = getCategoryName(product.id_categoria, categories);
+
+                card.innerHTML = `
+                    <h3>${product.name}</h3>
+                    <p class="category">Consola: ${consoleName}</p>
+                    <p>Formato: <strong>${product.formato}</strong></p>
+                    <p>${product.description}</p>
+                    <p class="price">${product.price.toFixed(2)} €</p>
+                    <p class="stock">Stock: ${product.stock}</p>
+                    <button class="add-to-cart-btn" data-product-id="${product.id}" 
+                            ${product.stock === 0 ? 'disabled' : ''}>
+                        ${product.stock === 0 ? 'Agotado' : 'Añadir al Carrito'}
+                    </button>
+                `;
+                return card;
+            };
+
+            // Renderizar Destacados
+            featuredProducts.forEach(product => {
+                featuredContainer.appendChild(createProductCard(product));
+            });
+
+            // Renderizar el resto del catálogo
+            standardProducts.forEach(product => {
+                allProductsContainer.appendChild(createProductCard(product));
+            });
+
+            // Actualizar contador del carrito
+            updateCartCount();
+        }
+
+        function updateCartCount() {
+            const cartItems = StorageManager.getCart();
+            const totalItems = cartItems.reduce((sum, item) => sum + item.quantity, 0);
+            document.getElementById('cart-count').textContent = totalItems;
+        }
+
+        // -----------------------------------------------------------------
+        // FUNCIONES DE EVENTOS Y LÓGICA
+        // -----------------------------------------------------------------
+
+        function handleLogout() {
+            StorageManager.clearAll();
+            window.location.href = 'login.html';
+        }
+
+        // Función para gestionar los clics en los botones "Añadir al Carrito"
+        function setupCartListeners() {
+            const container = document.querySelector('main'); // Usamos main para delegación
+
+            // Listener para el botón "Añadir al Carrito"
+            container.addEventListener('click', (e) => {
+                if (e.target.classList.contains('add-to-cart-btn')) {
+                    const productId = parseInt(e.target.dataset.productId);
+                    StorageManager.addToCart(productId); // Añadir 1 unidad
+                    updateCartCount(); // Actualizar el contador
+                    alert(`¡Producto añadido! ID: ${productId}.`); // Feedback
+                }
+            });
+
+            // Listener para añadir producto a vistos recientemente (al hacer click en la tarjeta)
+            container.addEventListener('click', (e) => {
+                let target = e.target;
+                // Subir hasta encontrar el elemento con data-product-id (la tarjeta)
+                while (target && !target.dataset.productId && target !== container) {
+                    target = target.parentElement;
+                }
+                if (target && target.dataset.productId) {
+                    const productId = parseInt(target.dataset.productId);
+                    // Solo si no estamos haciendo click en el botón (que ya tiene su propia acción)
+                    if (!e.target.classList.contains('add-to-cart-btn')) {
+                        StorageManager.addProductViewed(productId);
+                        // No es necesario re-renderizar, esto se verá en la próxima carga o en la sección de vistos.
+                    }
+                }
+            });
+        }
+
+        async function renderRecentViews() {
+            const viewedIds = StorageManager.getProductsViewed();
+            const container = document.getElementById('recent-products-list');
+            const noViewsMessage = document.getElementById('no-recent-views');
+
+            container.innerHTML = ''; // Limpiar
+
+            if (viewedIds.length === 0) {
+                document.getElementById('recent-views-container').style.display = 'none';
+                return;
+            }
+
+            document.getElementById('recent-views-container').style.display = 'block';
+
+            // Filtrar IDs que ya no existen en el catálogo actual para evitar errores
+            const storeData = StorageManager.getStoreData();
+            const validViewedIds = viewedIds.filter(id => storeData.products.some(p => p.id === id));
+
+            if (validViewedIds.length === 0) {
+                noViewsMessage.style.display = 'block';
+                return;
+            }
+
+            // Usar la función de ApiService (que implementaremos en el próximo paso)
+            // Por ahora, usamos los datos locales para renderizar.
+            const categories = storeData.categories;
+
+            validViewedIds.forEach(productId => {
+                const product = storeData.products.find(p => p.id === productId);
+                if (product) {
+                    const card = document.createElement('div');
+                    card.className = 'product-card';
+                    card.dataset.productId = product.id;
+                    const consoleName = getCategoryName(product.id_categoria, categories);
+
+                    card.innerHTML = `
+                        <h4>${product.name}</h4>
+                        <p class="category">${consoleName} - ${product.formato}</p>
+                        <p class="price">${product.price.toFixed(2)} €</p>
+                        <button class="add-to-cart-btn" data-product-id="${product.id}" 
+                            ${product.stock === 0 ? 'disabled' : ''}>
+                            Añadir
+                        </button>
+                    `;
+                    container.appendChild(card);
+                }
+            });
+        }
+
+        // -----------------------------------------------------------------
+        // INICIALIZACIÓN
+        // -----------------------------------------------------------------
 
         function initDashboard() {
             // 1. VERIFICAR AUTENTICACIÓN
-            if (!StorageManager.getToken()) {
-                // Redirigir si no hay token (usuario no autenticado)
+            const token = StorageManager.getToken();
+            const storeData = StorageManager.getStoreData();
+
+            if (!token || !storeData) {
+                // Si no hay token o datos de la tienda, redirigir al login
                 window.location.href = 'login.html';
                 return;
             }
 
-            // 2. CARGAR DATOS DESDE LOCALSTORAGE
-            const storeData = StorageManager.getStoreData();
-            if (!storeData || !storeData.products) {
-                console.error("Error: No se pudieron cargar los datos de la tienda desde LocalStorage.");
-                // Opcional: Cerrar sesión si los datos están corruptos
-                // StorageManager.clearAll();
-                // window.location.href = 'login.html';
-                return;
-            }
+            // 2. MOSTRAR MENSAJE DE BIENVENIDA (Usando el username guardado en el storeData al loggearse)
+            const username = storeData.username || 'Usuario';
+            document.getElementById('welcome-message').textContent = `Bienvenido, ${username}.`;
 
-            // 3. RENDERIZAR PRODUCTOS DESTACADOS
-            // Filtrar productos donde 'featured' o 'destacado' es true
-            const featuredProducts = storeData.products.filter(p => p.featured === true); // Usa 'destacado' si ese es el nombre de tu campo JSON
-            const container = document.getElementById('products-container');
-            
-            featuredProducts.forEach(product => {
-                const card = ProductCard.create(product);
-                container.appendChild(card);
-            });
-            
+            // 3. RENDERIZAR INTERFAZ
+            renderCategories(storeData.categories);
+            renderProducts();
+            renderRecentViews(); // Renderizar vistos (con datos locales por ahora)
+
             // 4. CONFIGURAR CIERRE DE SESIÓN
             document.getElementById('logoutButton').addEventListener('click', handleLogout);
+
+            // 5. CONFIGURAR LISTENERS DEL CARRITO Y VISTOS
+            setupCartListeners();
         }
 
-        function handleLogout() {
-            // Eliminar token, productos y carrito del LocalStorage [cite: 134-138]
-            StorageManager.clearAll(); 
-            window.location.href = 'login.html';
-        }
+        document.addEventListener('DOMContentLoaded', initDashboard);
     </script>
 </body>
+
 </html>
