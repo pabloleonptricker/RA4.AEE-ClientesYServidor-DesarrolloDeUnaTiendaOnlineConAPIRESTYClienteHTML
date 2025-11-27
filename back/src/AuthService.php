@@ -1,7 +1,7 @@
 <?php
 
 // Incluir la clase Database, ya que AuthService la necesita.
-require_once 'Database.php'; 
+require_once __DIR__ . '/Database.php';
 
 // CLAVE SECRETA para la firma del token (¡MUY IMPORTANTE!)
 define('JWT_SECRET', 'ESTA_DEBE_SER_UNA_CLAVE_LARGA_Y_COMPLEJA_Y_SECRETA_123456'); 

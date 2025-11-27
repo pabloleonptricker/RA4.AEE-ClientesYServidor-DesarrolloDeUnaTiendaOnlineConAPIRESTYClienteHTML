@@ -2,15 +2,13 @@
     "users": [
         {
             "id": 1,
-            "username": "admin",
-            "password": "password123",  
-            "role": "administrator"
+            "username": "test",
+            "password": "password"
         },
         {
             "id": 2,
-            "username": "cliente",
-            "password": "password456",
-            "role": "customer"
+            "username": "admin",
+            "password": "password"
         }
     ]
 }
