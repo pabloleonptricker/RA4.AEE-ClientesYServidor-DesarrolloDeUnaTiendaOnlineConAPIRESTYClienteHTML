@@ -1,0 +1,253 @@
+/* Variables de Color del Tema */
+:root {
+    --color-primary: #FFC107;
+    /* Mostaza brillante */
+    --color-secondary: #000000;
+    /* Negro Mate (para headers, etc.) */
+    --color-background-dark: #121212;
+    /* Fondo de página (negro mate) */
+    --color-background-light: #1e1e1e;
+    /* Fondo de contenedores y cards (gris oscuro) */
+    --color-text-light: #e0e0e0;
+    /* Texto claro */
+    --color-accent-hover: #ff9800;
+    /* Mostaza más oscuro para hover */
+    --color-success: #FFC107;
+    /* Botón de Añadir a Carrito */
+    --color-error: #F44336;
+    /* Texto de stock agotado */
+    --color-border: #444;
+    /* Borde de elementos */
+}
+
+/* 1. Base Global */
+body {
+    font-family: 'Arial', sans-serif;
+    background-color: var(--color-background-dark);
+    color: var(--color-text-light);
+    margin: 0;
+    padding: 0;
+    line-height: 1.6;
+}
+
+main {
+    padding: 20px;
+    max-width: 1400px;
+    margin: auto;
+}
+
+h1,
+h2,
+h3 {
+    color: var(--color-primary);
+    border-bottom: 2px solid var(--color-background-light);
+    padding-bottom: 5px;
+    margin-top: 30px;
+}
+
+section {
+    margin-bottom: 40px;
+    background-color: var(--color-background-light);
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.4);
+}
+
+/* 2. Header y Navegación */
+header {
+    background: var(--color-secondary);
+    color: var(--color-primary);
+    padding: 15px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 3px solid var(--color-primary);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+}
+
+/* Contenedor del Logo y Título */
+.header-brand {
+    display: flex;
+    align-items: center;
+    /* Alinea el logo y el título verticalmente */
+    gap: 15px;
+    /* Espacio entre el logo y el texto */
+}
+
+/* ESTILO DEL LOGO: REDUCCIÓN DE TAMAÑO A 30PX */
+#site-logo {
+    height: 90px;
+    /* TAMAÑO REDUCIDO */
+    width: auto;
+    object-fit: contain;
+}
+
+header h1 {
+    margin: 0;
+    border-bottom: none;
+    font-size: 1.8em;
+}
+
+header nav {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+header nav a,
+header button {
+    color: var(--color-text-light);
+    text-decoration: none;
+    background: #333;
+    /* Gris oscuro para botones de navegación */
+    border: 1px solid var(--color-primary);
+    padding: 8px 12px;
+    cursor: pointer;
+    border-radius: 4px;
+    transition: background-color 0.3s, color 0.3s;
+    font-weight: bold;
+}
+
+header nav a:hover,
+header button:hover {
+    background-color: var(--color-primary);
+    color: var(--color-secondary);
+}
+
+#welcome-message {
+    color: var(--color-primary);
+    font-weight: normal;
+    font-style: italic;
+    margin-right: 10px;
+}
+
+/* 3. Filtros */
+#filters {
+    padding: 15px;
+    background: var(--color-background-light);
+    border-radius: 8px;
+    margin-bottom: 30px;
+    border: 1px solid var(--color-border);
+}
+
+#filters label {
+    color: var(--color-text-light);
+    margin-right: 10px;
+}
+
+#filters select {
+    padding: 10px;
+    border-radius: 4px;
+    border: 1px solid var(--color-border);
+    background-color: #333;
+    color: var(--color-text-light);
+}
+
+/* 4. Contenedores de Productos */
+.products-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 20px;
+}
+
+/* 5. Tarjeta de Producto (General) */
+.product-card {
+    background: var(--color-background-dark);
+    border: 1px solid var(--color-border);
+    padding: 15px;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.product-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.6);
+}
+
+.product-card.featured {
+    border: 3px solid var(--color-primary);
+    box-shadow: 0 4px 10px rgba(255, 193, 7, 0.5);
+}
+
+.product-card img {
+    max-width: 100%;
+    height: auto;
+    border-radius: 4px;
+    margin-bottom: 10px;
+    object-fit: cover;
+}
+
+.product-card h3,
+.product-card h4 {
+    color: var(--color-primary);
+    border-bottom: none;
+    margin-bottom: 5px;
+    font-size: 1.3em;
+}
+
+.product-card p {
+    margin: 5px 0;
+}
+
+.product-card .price {
+    font-size: 1.4em;
+    color: var(--color-primary);
+    font-weight: bold;
+    margin-top: 10px;
+}
+
+.product-card .stock {
+    font-size: 0.9em;
+    color: #999;
+    margin-bottom: 10px;
+}
+
+.product-card button.add-to-cart-btn {
+    background: var(--color-success);
+    color: var(--color-secondary);
+    border: none;
+    padding: 10px;
+    width: 100%;
+    cursor: pointer;
+    border-radius: 4px;
+    margin-top: 10px;
+    font-weight: bold;
+    transition: background-color 0.3s;
+}
+
+.product-card button.add-to-cart-btn:hover {
+    background: #45a049;
+}
+
+.product-card button:disabled {
+    background: var(--color-error);
+    /* Usamos el color de error para 'Agotado' */
+    color: var(--color-text-light);
+    cursor: not-allowed;
+}
+
+
+/* 6. Vistos Recientemente */
+#recent-products-list {
+    display: flex;
+    gap: 20px;
+    overflow-x: auto;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--color-border);
+    margin-bottom: 30px;
+}
+
+#recent-products-list .product-card {
+    flex: 0 0 200px;
+    /* Tamaño fijo para la lista horizontal */
+    min-width: 200px;
+    padding: 10px;
+    /* Estilos más sutiles para el carrusel */
+    background: #191919;
+    border: 1px solid var(--color-primary);
+}
