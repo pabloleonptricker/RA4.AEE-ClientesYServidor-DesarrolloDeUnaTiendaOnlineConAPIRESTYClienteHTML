@@ -31,8 +31,8 @@ $data = json_decode($input, true);
 // El cliente envía un array de IDs bajo la clave 'ids'
 $productIds = $data['ids'] ?? []; 
 
+// Si no hay IDs, devolver array vacío (NO es un error)
 if (empty($productIds) || !is_array($productIds)) {
-    // Si no hay IDs o el formato es incorrecto, devolvemos una lista vacía con éxito.
     RH::sendJsonResponse(['products' => []], 200);
 }
 
@@ -48,15 +48,12 @@ $catalog = $storeData['products'];
 $recentProducts = [];
 
 foreach ($catalog as $product) {
-    // Verificar si el ID del producto actual está en la lista de IDs solicitados por el cliente
-    // Usamos in_array(producto.id, lista_de_ids_vistos) para la búsqueda eficiente
     if (in_array($product['id'], $productIds)) {
         
         // Incluir la información de la categoría para el frontend
         $category = array_filter($storeData['categories'], fn($cat) => $cat['id'] === $product['id_categoria']);
         $product['category_name'] = $category ? array_values($category)[0]['name'] : 'N/A';
         
-        // Solo enviamos los datos necesarios.
         $recentProducts[] = [
             'id' => $product['id'],
             'name' => $product['name'],
@@ -69,8 +66,7 @@ foreach ($catalog as $product) {
     }
 }
 
-// 6. **Respuesta de Éxito**
-// Reordenamos los productos para que coincidan con el orden en que fueron vistos (opcional, pero buena práctica)
+// 6. **Reordenar productos según el orden de visualización**
 $orderedRecentProducts = [];
 foreach ($productIds as $id) {
     $found = array_filter($recentProducts, fn($p) => $p['id'] === $id);
@@ -79,7 +75,7 @@ foreach ($productIds as $id) {
     }
 }
 
-
+// 7. **Respuesta de Éxito - SIEMPRE devuelve 200 aunque esté vacío**
 RH::sendJsonResponse([
     'products' => $orderedRecentProducts
 ], 200);

@@ -1,1 +1,0 @@
-//Verifica la autenticación antes de cargar las vistas.

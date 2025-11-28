@@ -1,5 +1,0 @@
-<?php
-
-//Modelo de Producto.
-
-?>
