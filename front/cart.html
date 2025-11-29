@@ -48,7 +48,8 @@
 
         // Functión auxiliar para obtener los detalles de un producto por ID desde el storeData
         function getProductDetails(productId, storeProducts) {
-            return storeProducts.find(p => p.id === productId);
+            // Usa String().trim() y el comparador no estricto (==) para manejar IDs mixtos (números o strings)
+            return storeProducts.find(p => String(p.id).trim() == String(productId).trim());
         }
 
         function renderCart() {
@@ -59,9 +60,11 @@
             const emptyMessage = document.getElementById('empty-cart-message');
             const checkoutButton = document.getElementById('checkoutButton');
 
+            // Limpiamos el contenedor para empezar de nuevo
             container.innerHTML = '';
 
             if (!cartItems || cartItems.length === 0 || !storeData || !storeData.products) {
+                // Caso: carrito vacío o datos no cargados
                 emptyMessage.style.display = 'block';
                 totalElement.textContent = '0.00 €';
                 checkoutButton.disabled = true;
@@ -73,7 +76,8 @@
             let estimatedTotal = 0;
 
             cartItems.forEach(item => {
-                const product = getProductDetails(item.id, storeData.products);
+                // 🚨 CORRECCIÓN CRÍTICA: Se lee el ID correctamente usando 'item.productId'
+                const product = getProductDetails(item.productId, storeData.products);
 
                 if (product) {
                     const subtotal = product.price * item.quantity;
@@ -81,16 +85,30 @@
 
                     const cartItemDiv = document.createElement('div');
                     cartItemDiv.className = 'cart-item';
+
+                    // Lógica para la imagen
+                    const imageHtml = product.image_url
+                        ? `<img src="${product.image_url}" alt="${product.name}" style="width: 80px; height: auto; margin-right: 15px; float: left;">`
+                        : '';
+
                     cartItemDiv.innerHTML = `
-            <div class="item-info">
-              <h4>${product.name} (${product.formato})</h4>
-              <p>Precio Unitario: ${product.price.toFixed(2)} €</p>
-              <p>Cantidad: ${item.quantity} | Stock visible: ${product.stock}</p>
-              <p>Subtotal: <strong>${subtotal.toFixed(2)} €</strong></p>
-            </div>
-            <button class="remove-item-btn" data-product-id="${product.id}">Eliminar</button>
-          `;
+                        ${imageHtml}
+                        <div class="item-info">
+                            <h4>${product.name} (${product.formato})</h4>
+                            <p>Precio Unitario: ${product.price.toFixed(2)} €</p>
+                            <p>Cantidad: ${item.quantity} | Stock visible: ${product.stock}</p>
+                            <p>Subtotal: <strong>${subtotal.toFixed(2)} €</strong></p>
+                        </div>
+                        <button class="remove-item-btn" data-product-id="${product.id}">Eliminar</button>
+                    `;
                     container.appendChild(cartItemDiv);
+                } else {
+                    // Muestra una fila de error si un producto no se puede encontrar
+                    console.error(`Producto con ID ${item.productId} no encontrado en el catálogo.`);
+                    const errorDiv = document.createElement('div');
+                    errorDiv.className = 'alert alert-danger';
+                    errorDiv.innerHTML = `Error: No se pudo cargar el producto con ID <strong>${item.productId}</strong>. Por favor, vacía el carrito.`;
+                    container.appendChild(errorDiv);
                 }
             });
 
@@ -99,7 +117,7 @@
             // Añadir listeners para los botones de eliminar
             document.querySelectorAll('.remove-item-btn').forEach(button => {
                 button.addEventListener('click', (e) => {
-                    const productId = parseInt(e.target.dataset.productId);
+                    const productId = e.target.dataset.productId;
                     StorageManager.removeFromCart(productId);
                     renderCart(); // Re-renderizar el carrito
                 });
@@ -112,34 +130,29 @@
             const messageElement = document.getElementById('checkout-message');
             messageElement.textContent = '';
 
-            if (!token) {
-                messageElement.textContent = 'Error: No estás autenticado.';
-                return;
-            }
-
-            if (cartItems.length === 0) {
-                messageElement.textContent = 'El carrito está vacío.';
+            if (!token || cartItems.length === 0) {
+                messageElement.textContent = !token ? 'Error: No estás autenticado.' : 'El carrito está vacío.';
+                messageElement.style.color = 'red';
                 return;
             }
 
             const checkoutButton = document.getElementById('checkoutButton');
             checkoutButton.disabled = true;
             messageElement.textContent = 'Procesando pago y validando stock...';
+            messageElement.style.color = 'black';
 
             try {
                 // Llama al API para validar el carrito y completar el "pedido"
                 const response = await ApiService.checkout(cartItems, token);
 
-                // Éxito: El carrito fue validado y el pedido completado por el servidor
                 messageElement.textContent = `✅ Éxito: Pedido validado. El total final del servidor fue de ${response.final_total.toFixed(2)} €.`;
                 messageElement.style.color = 'green';
 
                 // Limpiar el carrito después de la compra exitosa
                 StorageManager.clearCart();
-                renderCart(); // Actualizar la vista a carrito vacío
+                renderCart();
 
             } catch (error) {
-                // Error de stock, precio, o autenticación
                 messageElement.textContent = `❌ Error al finalizar la compra: ${error.message}`;
                 messageElement.style.color = 'red';
                 checkoutButton.disabled = false; // Permitir reintento

@@ -57,9 +57,10 @@
     <script src="js/ApiService.js"></script>
     <script>
 
-        // Función auxiliar para obtener el nombre de la categoría por ID (Usado solo para renderProducts)
+        // Función auxiliar para obtener el nombre de la categoría por ID
         function getCategoryName(id, categories) {
-            const category = categories.find(c => c.id === id);
+            // Se asegura una comparación robusta para la categoría (en caso de inconsistencia de tipos)
+            const category = categories.find(c => String(c.id) == String(id));
             return category ? category.name : 'Desconocida';
         }
 
@@ -101,7 +102,7 @@
                 <p class="price">${product.price.toFixed(2)} €</p>
                 <p class="stock">Stock: ${product.stock}</p>
                 <button class="add-to-cart-btn" data-product-id="${product.id}" 
-                        ${product.stock === 0 ? 'disabled' : ''}>
+                    ${product.stock === 0 ? 'disabled' : ''}>
                     ${product.stock === 0 ? 'Agotado' : 'Añadir al Carrito'}
                 </button>
             `;
@@ -111,6 +112,7 @@
 
         function renderProducts() {
             const storeData = StorageManager.getStoreData();
+            // Asumiendo que los datos de la tienda tienen la propiedad 'products'
             if (!storeData || !storeData.products || !storeData.categories) return;
 
             const products = storeData.products;
@@ -224,17 +226,40 @@
         }
 
         function setupCartListeners() {
+            // Usamos 'main' como contenedor principal para el event delegation
             const container = document.querySelector('main');
 
             // 1. Listener para el botón "Añadir al Carrito"
             container.addEventListener('click', (e) => {
                 if (e.target.classList.contains('add-to-cart-btn')) {
-                    const productId = parseInt(e.target.dataset.productId);
+
+                    // 🚨 PASO 1: Obtener el ID y normalizarlo (limpiar espacios)
+                    const rawProductId = e.target.dataset.productId;
+                    const productId = rawProductId ? rawProductId.trim() : null; 
+
+                    const storeData = StorageManager.getStoreData();
+                    let product = null;
+
+                    // 🚨 PASO 2: La búsqueda MÁS ROBUSTA (Usando 'products' y normalizando)
+                    // Se asegura que existe el ID, los datos de la tienda, y el array de productos
+                    if (productId && storeData && storeData.products) { 
+                        // Usamos String().trim() en p.id y '==' para una comparación robusta
+                        product = storeData.products.find(p => String(p.id).trim() == productId); 
+                    }
+
+                    // Lógica del carrito
                     StorageManager.addToCart(productId);
                     updateCartCount();
-                    alert(`¡Producto añadido! ID: ${productId}.`);
+
+                    // Alerta final (usando .name y productName)
+                    if (product && product.name) {
+                        alert(`"${product.name}" añadido al carrito`);
+                    } else {
+                        // Mensaje de ayuda si la búsqueda falla
+                        alert(`Error de búsqueda: Se añadió el producto. ID buscado: ${productId}.`);
+                    }
                 }
-            });
+            }); // Cierre Correcto del Listener 1
 
             // 2. Listener para añadir producto a vistos recientemente (al hacer click en la tarjeta)
             container.addEventListener('click', (e) => {
@@ -244,7 +269,9 @@
                     target = target.parentElement;
                 }
                 if (target && target.dataset.productId) {
-                    const productId = parseInt(target.dataset.productId);
+                    // Usamos el ID como string (más seguro que parseInt)
+                    const productId = target.dataset.productId.trim(); 
+                    
                     // Solo si no estamos haciendo click en el botón (que ya tiene su propia acción)
                     if (!e.target.classList.contains('add-to-cart-btn')) {
                         StorageManager.addProductViewed(productId);
@@ -252,8 +279,8 @@
                         renderRecentViews();
                     }
                 }
-            });
-        }
+            }); // Cierre Correcto del Listener 2
+        } // Cierre Correcto de setupCartListeners()
 
         // -----------------------------------------------------------------
         // INICIALIZACIÓN
@@ -277,7 +304,7 @@
             // 3. RENDERIZAR INTERFAZ
             renderCategories(storeData.categories);
             renderProducts();
-            renderRecentViews(); // Carga y muestra los productos vistos usando la API
+            renderRecentViews(); 
 
             // 4. CONFIGURAR CIERRE DE SESIÓN
             document.getElementById('logoutButton').addEventListener('click', handleLogout);

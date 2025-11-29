@@ -1,131 +1,92 @@
-class StorageManager {
-    // Claves que usaremos en localStorage
-    static KEYS = {
-        TOKEN: 'authToken',
-        STORE_DATA: 'storeData', 
-        CART: 'shoppingCart',    
-        PRODUCTS_VIEWED: 'productsViewed' 
+const StorageManager = (() => {
+    const CART_KEY = 'shopping_cart';
+    const AUTH_KEY = 'auth_token';
+    const STORE_KEY = 'store_data';
+    
+    // --- Utilidades de Datos ---
+
+    const getCart = () => {
+        const cartJson = localStorage.getItem(CART_KEY);
+        // Retorna un array vacío si no hay nada guardado
+        return cartJson ? JSON.parse(cartJson) : [];
     };
 
-    // --- Métodos de Sesión y Datos de Tienda ---
+    const saveCart = (cart) => {
+        localStorage.setItem(CART_KEY, JSON.stringify(cart));
+    };
 
-    static saveAuthData(token, storeData) {
-        if (token) {
-            localStorage.setItem(StorageManager.KEYS.TOKEN, token);
-        }
-        if (storeData) {
-            localStorage.setItem(StorageManager.KEYS.STORE_DATA, JSON.stringify(storeData));
-        }
-    }
+    // --- Funciones de Autenticación y Tienda ---
 
-    static getToken() {
-        return localStorage.getItem(StorageManager.KEYS.TOKEN);
-    }
+    const saveAuthData = (token, storeData) => {
+        localStorage.setItem(AUTH_KEY, token);
+        localStorage.setItem(STORE_KEY, JSON.stringify(storeData));
+    };
 
-    static getStoreData() {
-        const data = localStorage.getItem(StorageManager.KEYS.STORE_DATA);
-        return data ? JSON.parse(data) : null;
-    }
-
-    static clearAll() {
-        localStorage.removeItem(StorageManager.KEYS.TOKEN);
-        localStorage.removeItem(StorageManager.KEYS.STORE_DATA);
-        StorageManager.clearCart(); 
-        StorageManager.clearProductsViewed(); 
-    }
+    const getToken = () => {
+        return localStorage.getItem(AUTH_KEY);
+    };
     
-    // -----------------------------------------------------------------
-    // --- MÉTODOS PARA EL CARRITO DE COMPRAS ---
-    // -----------------------------------------------------------------
+    const getStoreData = () => {
+        const storeJson = localStorage.getItem(STORE_KEY);
+        return storeJson ? JSON.parse(storeJson) : null;
+    };
+    
+    const clearAuthData = () => {
+        localStorage.removeItem(AUTH_KEY);
+        localStorage.removeItem(STORE_KEY);
+    };
 
-    /**
-     * Obtiene el carrito del localStorage.
-     * @returns {Array<{id: number, quantity: number}>} Lista de ítems del carrito.
-     */
-    static getCart() {
-        const cart = localStorage.getItem(StorageManager.KEYS.CART);
-        return cart ? JSON.parse(cart) : [];
-    }
+    // --- Funciones del Carrito ---
 
-    /**
-     * Guarda el array del carrito en localStorage.
-     * @param {Array<object>} cartItems 
-     */
-    static saveCart(cartItems) {
-        localStorage.setItem(StorageManager.KEYS.CART, JSON.stringify(cartItems));
-    }
+    const addToCart = (productId) => {
+        const cart = getCart();
+        
+        // Convertimos el ID a String y limpiamos espacios para la búsqueda robusta
+        const cleanProductId = String(productId).trim();
 
-    /**
-     * Añade un producto al carrito o incrementa su cantidad si ya existe.
-     * @param {number} productId - El ID del producto.
-     * @param {number} [quantity=1] - Cantidad a añadir.
-     */
-    static addToCart(productId, quantity = 1) {
-        const cart = StorageManager.getCart();
-        const existingItem = cart.find(item => item.id === productId);
+        // Buscamos si el producto ya existe en el carrito
+        const existingItem = cart.find(item => String(item.productId).trim() === cleanProductId);
 
         if (existingItem) {
-            existingItem.quantity += quantity;
+            existingItem.quantity++;
         } else {
-            cart.push({ id: productId, quantity: quantity });
+            // Guardamos SOLO el ID del producto y la cantidad
+            cart.push({
+                productId: cleanProductId, // Guardamos el ID limpio
+                quantity: 1,
+            });
         }
-
-        StorageManager.saveCart(cart);
-    }
-
-    /**
-     * Elimina completamente un producto del carrito.
-     * @param {number} productId - El ID del producto a eliminar.
-     */
-    static removeFromCart(productId) {
-        let cart = StorageManager.getCart();
-        cart = cart.filter(item => item.id !== productId);
-        StorageManager.saveCart(cart);
-    }
+        
+        saveCart(cart);
+        // Opcional: devolver la cantidad actual para un alert, si es necesario
+        return existingItem ? existingItem.quantity : 1; 
+    };
     
-    /**
-     * Vacía completamente el carrito.
-     */
-    static clearCart() {
-        localStorage.removeItem(StorageManager.KEYS.CART);
-    }
+    const removeFromCart = (productId) => {
+        let cart = getCart();
+        
+        const cleanProductId = String(productId).trim();
+        
+        // Filtramos y mantenemos todos los productos cuyo ID no coincida con el que queremos eliminar
+        cart = cart.filter(item => String(item.productId).trim() !== cleanProductId);
+        
+        saveCart(cart);
+    };
     
-    // -----------------------------------------------------------------
-    // --- MÉTODOS PARA PRODUCTOS VISTOS RECIENTEMENTE (Futuro) ---
-    // -----------------------------------------------------------------
+    const clearCart = () => {
+        localStorage.removeItem(CART_KEY);
+    };
 
-    /**
-     * Añade un producto a la lista de vistos recientemente.
-     * @param {number} productId - El ID del producto.
-     */
-    static addProductViewed(productId) {
-        let viewed = StorageManager.getProductsViewed();
-        
-        // Eliminar si ya existe para moverlo al inicio
-        viewed = viewed.filter(id => id !== productId); 
-        
-        // Añadir al principio
-        viewed.unshift(productId); 
-        
-        // Limitar a los últimos 5 productos vistos (por ejemplo)
-        viewed = viewed.slice(0, 5); 
-        
-        localStorage.setItem(StorageManager.KEYS.PRODUCTS_VIEWED, JSON.stringify(viewed));
-    }
 
-    /**
-     * Obtiene la lista de IDs de productos vistos recientemente.
-     * @returns {Array<number>}
-     */
-    static getProductsViewed() {
-        const viewed = localStorage.getItem(StorageManager.KEYS.PRODUCTS_VIEWED);
-        return viewed ? JSON.parse(viewed) : [];
-    }
-    
-    /**
-     * Vacía la lista de productos vistos.
-     */
-    static clearProductsViewed() {
-        localStorage.removeItem(StorageManager.KEYS.PRODUCTS_VIEWED);
-    }
-}
+    return {
+        saveAuthData,
+        getToken,
+        getStoreData,
+        clearAuthData,
+        
+        getCart,
+        addToCart,
+        removeFromCart,
+        clearCart
+    };
+})();
