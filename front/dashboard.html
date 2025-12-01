@@ -221,7 +221,8 @@
         // -----------------------------------------------------------------
 
         function handleLogout() {
-            StorageManager.clearAll();
+            StorageManager.clearAuthData();  // ✅ Cambio: clearAll() → clearAuthData()
+            StorageManager.clearCart();      // ✅ Añadido: Limpiar también el carrito
             window.location.href = 'login.html';
         }
 
@@ -235,16 +236,16 @@
 
                     // 🚨 PASO 1: Obtener el ID y normalizarlo (limpiar espacios)
                     const rawProductId = e.target.dataset.productId;
-                    const productId = rawProductId ? rawProductId.trim() : null; 
+                    const productId = rawProductId ? rawProductId.trim() : null;
 
                     const storeData = StorageManager.getStoreData();
                     let product = null;
 
                     // 🚨 PASO 2: La búsqueda MÁS ROBUSTA (Usando 'products' y normalizando)
                     // Se asegura que existe el ID, los datos de la tienda, y el array de productos
-                    if (productId && storeData && storeData.products) { 
+                    if (productId && storeData && storeData.products) {
                         // Usamos String().trim() en p.id y '==' para una comparación robusta
-                        product = storeData.products.find(p => String(p.id).trim() == productId); 
+                        product = storeData.products.find(p => String(p.id).trim() == productId);
                     }
 
                     // Lógica del carrito
@@ -270,8 +271,8 @@
                 }
                 if (target && target.dataset.productId) {
                     // Usamos el ID como string (más seguro que parseInt)
-                    const productId = target.dataset.productId.trim(); 
-                    
+                    const productId = target.dataset.productId.trim();
+
                     // Solo si no estamos haciendo click en el botón (que ya tiene su propia acción)
                     if (!e.target.classList.contains('add-to-cart-btn')) {
                         StorageManager.addProductViewed(productId);
@@ -304,7 +305,7 @@
             // 3. RENDERIZAR INTERFAZ
             renderCategories(storeData.categories);
             renderProducts();
-            renderRecentViews(); 
+            renderRecentViews();
 
             // 4. CONFIGURAR CIERRE DE SESIÓN
             document.getElementById('logoutButton').addEventListener('click', handleLogout);

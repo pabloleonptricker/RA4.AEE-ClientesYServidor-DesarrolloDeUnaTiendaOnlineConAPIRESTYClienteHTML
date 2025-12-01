@@ -4,7 +4,7 @@
 <head>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"
         integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
-    <link rel="stylesheet" href="assets/css/style.css">
+    <link rel="stylesheet" href="css/cart.css">
     <meta charset="UTF-8">
     <title>Carrito de Compras - Tienda de Videojuegos</title>
     <link rel="stylesheet" href="css/cart.css">
@@ -32,11 +32,17 @@
             </div>
 
             <div id="cart-summary" style="margin-top: 30px; padding: 15px; border-top: 2px solid #333;">
-                <h3>Total Estimado: <span id="estimated-total">0.00 €</span></h3>
-                <button id="checkoutButton" disabled>Finalizar Compra</button>
+                <!-- Total estimado -->
+                <div style="background:#111; padding:12px; border-radius:4px; color:#ffc107; display:flex; align-items:center; justify-content:space-between;">
+                    <div>Total Estimado: <strong><span id="estimated-total">0.00</span> €</strong></div>
+                    <button id="checkoutButton" class="btn btn-success" style="margin-left:20px;">
+                        Finalizar Compra
+                    </button>
+                </div>
             </div>
-
             <p id="checkout-message" style="margin-top: 10px; font-weight: bold;"></p>
+
+
 
         </section>
     </main>
@@ -60,23 +66,23 @@
             const emptyMessage = document.getElementById('empty-cart-message');
             const checkoutButton = document.getElementById('checkoutButton');
 
-            // Limpiamos el contenedor para empezar de nuevo
+            // Proteger contra DOM incompleto
+            if (!container) return;
+
             container.innerHTML = '';
 
             if (!cartItems || cartItems.length === 0 || !storeData || !storeData.products) {
-                // Caso: carrito vacío o datos no cargados
-                emptyMessage.style.display = 'block';
-                totalElement.textContent = '0.00 €';
-                checkoutButton.disabled = true;
+                if (emptyMessage) emptyMessage.style.display = 'block';
+                if (totalElement) totalElement.textContent = '0.00';
+                if (checkoutButton) checkoutButton.disabled = true;
                 return;
             }
 
-            emptyMessage.style.display = 'none';
-            checkoutButton.disabled = false;
+            if (emptyMessage) emptyMessage.style.display = 'none';
+            if (checkoutButton) checkoutButton.disabled = false;
             let estimatedTotal = 0;
 
             cartItems.forEach(item => {
-                // 🚨 CORRECCIÓN CRÍTICA: Se lee el ID correctamente usando 'item.productId'
                 const product = getProductDetails(item.productId, storeData.products);
 
                 if (product) {
@@ -86,7 +92,6 @@
                     const cartItemDiv = document.createElement('div');
                     cartItemDiv.className = 'cart-item';
 
-                    // Lógica para la imagen
                     const imageHtml = product.image_url
                         ? `<img src="${product.image_url}" alt="${product.name}" style="width: 200px; height: auto; margin-right: 15px; float: left;">`
                         : '';
@@ -103,7 +108,6 @@
                     `;
                     container.appendChild(cartItemDiv);
                 } else {
-                    // Muestra una fila de error si un producto no se puede encontrar
                     console.error(`Producto con ID ${item.productId} no encontrado en el catálogo.`);
                     const errorDiv = document.createElement('div');
                     errorDiv.className = 'alert alert-danger';
@@ -112,7 +116,7 @@
                 }
             });
 
-            totalElement.textContent = estimatedTotal.toFixed(2) + ' €';
+            if (totalElement) totalElement.textContent = estimatedTotal.toFixed(2);
 
             // Añadir listeners para los botones de eliminar
             document.querySelectorAll('.remove-item-btn').forEach(button => {
@@ -124,38 +128,75 @@
             });
         }
 
-        async function handleCheckout() {
-            const token = StorageManager.getToken();
-            const cartItems = StorageManager.getCart();
-            const messageElement = document.getElementById('checkout-message');
-            messageElement.textContent = '';
+                async function handleCheckout() {
+            // No guardamos la referencia aquí de forma permanente, la buscamos cuando la necesitamos
+            const checkoutButton = document.getElementById('checkoutButton');
 
-            if (!token || cartItems.length === 0) {
-                messageElement.textContent = !token ? 'Error: No estás autenticado.' : 'El carrito está vacío.';
-                messageElement.style.color = 'red';
+            const setMessage = (text, color = 'black') => {
+                const msgEl = document.getElementById('checkout-message');
+                if (msgEl) {
+                    msgEl.textContent = text;
+                    // proteger acceso a .style por si msgEl no es un elemento válido
+                    if (msgEl.style) msgEl.style.color = color;
+                } else {
+                    // fallback visible
+                    console.warn('checkout-message no encontrado, fallback a alert');
+                    alert(text);
+                }
+            };
+
+            if (!checkoutButton) {
+                setMessage('Error interno: botón de finalizar no encontrado.', 'red');
                 return;
             }
 
-            const checkoutButton = document.getElementById('checkoutButton');
+            const token = StorageManager.getToken();
+            const cartItems = StorageManager.getCart();
+
+            console.log('Token:', token);
+            console.log('Cart Items:', cartItems);
+
+            if (!token) {
+                setMessage('Error: No estás autenticado.', 'red');
+                return;
+            }
+            if (!cartItems || cartItems.length === 0) {
+                setMessage('El carrito está vacío.', 'red');
+                return;
+            }
+
+            const apiCartItems = cartItems.map(item => ({
+                id: item.productId,
+                quantity: item.quantity
+            }));
+            console.log('API Cart Items a enviar:', apiCartItems);
+
             checkoutButton.disabled = true;
-            messageElement.textContent = 'Procesando pago y validando stock...';
-            messageElement.style.color = 'black';
+            setMessage('Procesando pago y validando stock...', 'black');
 
             try {
-                // Llama al API para validar el carrito y completar el "pedido"
-                const response = await ApiService.checkout(cartItems, token);
+                const response = await ApiService.checkout(apiCartItems, token);
+                console.log('Respuesta del servidor:', response);
 
-                messageElement.textContent = `✅ Éxito: Pedido validado. El total final del servidor fue de ${response.final_total.toFixed(2)} €.`;
-                messageElement.style.color = 'green';
+                const finalTotal = (response && typeof response.final_total !== 'undefined')
+                    ? Number(response.final_total).toFixed(2)
+                    : null;
 
-                // Limpiar el carrito después de la compra exitosa
+                if (finalTotal !== null) {
+                    setMessage(`✅ Compra realizada. Total final: ${finalTotal} €.`, 'green');
+                } else if (response && response.message) {
+                    setMessage(`✅ ${response.message}`, 'green');
+                } else {
+                    setMessage('✅ Compra procesada correctamente.', 'green');
+                }
+
                 StorageManager.clearCart();
-                renderCart();
+                if (typeof renderCart === 'function') renderCart();
 
             } catch (error) {
-                messageElement.textContent = `❌ Error al finalizar la compra: ${error.message}`;
-                messageElement.style.color = 'red';
-                checkoutButton.disabled = false; // Permitir reintento
+                console.error('Error en checkout:', error);
+                setMessage(`❌ Error al finalizar la compra: ${error.message || error}`, 'red');
+                if (checkoutButton) checkoutButton.disabled = false;
             }
         }
 
@@ -168,18 +209,28 @@
         }
 
         function initCartPage() {
-            // 1. Verificar Autenticación
-            if (!StorageManager.getToken()) {
-                window.location.href = 'login.html';
-                return;
+            // evitar errores si los elementos no existen
+            const clearCartBtn = document.getElementById('clearCartButton');
+            const checkoutButton = document.getElementById('checkoutButton');
+
+            // Render inicial
+            if (typeof renderCart === 'function') renderCart();
+
+            if (checkoutButton) {
+                checkoutButton.removeEventListener('click', handleCheckout); // seguro
+                checkoutButton.addEventListener('click', handleCheckout);
+            } else {
+                console.warn('checkoutButton no existe en initCartPage');
             }
 
-            // 2. Renderizar carrito inicialmente
-            renderCart();
+            if (clearCartBtn) {
+                clearCartBtn.removeEventListener('click', handleClearCart);
+                clearCartBtn.addEventListener('click', handleClearCart);
+            }
 
-            // 3. Configurar listeners
-            document.getElementById('checkoutButton').addEventListener('click', handleCheckout);
-            document.getElementById('clearCartButton').addEventListener('click', handleClearCart);
+            // limpiar mensaje inicial si existe
+            const msgEl = document.getElementById('checkout-message');
+            if (msgEl) msgEl.textContent = '';
         }
     </script>
 </body>
