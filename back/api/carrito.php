@@ -29,7 +29,7 @@ if (!$authService->validateToken($token)) {
 $input = file_get_contents('php://input');
 $data = json_decode($input, true);
 
-$cartItems = $data['cart'] ?? []; // Array de {id: X, quantity: Y}
+$cartItems = $data['cart'] ?? [];
 
 if (empty($cartItems)) {
     RH::sendErrorResponse("Carrito vacío. No hay productos para procesar.", 400);
@@ -83,9 +83,6 @@ foreach ($cartItems as $item) {
         'unit_price' => $product['price'],
         'subtotal' => round($itemPrice, 2)
     ];
-    
-    // **NOTA DE VENTA:** En un sistema real, aquí se actualizaría la BBDD/JSON 
-    // para reducir el stock del producto. Por simplicidad, solo validamos.
 }
 
 // 6. **Respuesta de Éxito**
@@ -95,5 +92,3 @@ RH::sendJsonResponse([
     'validated_items' => $validatedCart,
     'final_total' => round($totalPrice, 2)
 ], 200);
-
-// SIN ETIQUETA DE CIERRE 

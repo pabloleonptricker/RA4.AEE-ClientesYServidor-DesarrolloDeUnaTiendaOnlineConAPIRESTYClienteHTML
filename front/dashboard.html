@@ -31,12 +31,9 @@
             </select>
         </section>
 
-        <section id="recent-views-container" style="display: none;">
-            <h2>⭐ Vistos Recientemente</h2>
-            <div id="recent-products-list">
-                <p id="no-recent-views" style="text-align: center; display: none;">No hay productos vistos
-                    recientemente.</p>
-            </div>
+        <section id="recent-views-container" style="display: none; margin-top: 20px;">
+            <h3 style="color:#ffc107;">Productos vistos recientemente</h3>
+            <div id="recent-views-list" class="d-flex gap-3" style="flex-wrap:wrap;"></div>
         </section>
 
         <section id="featured-products">
@@ -159,61 +156,44 @@
          * Llama al API para obtener los detalles de los productos vistos recientemente 
          * y los renderiza en la sección "Vistos Recientemente".
          */
-        async function renderRecentViews() {
-            const viewedIds = StorageManager.getProductsViewed();
-            const token = StorageManager.getToken();
-            const container = document.getElementById('recent-products-list');
-            const recentViewsSection = document.getElementById('recent-views-container');
+        function renderRecentViews() {
+            const recentIds = StorageManager.getViewedProducts();
+            const storeData = StorageManager.getStoreData();
+            const container = document.getElementById('recent-views-container');
+            const list = document.getElementById('recent-views-list');
+            if (!container || !list) return;
 
-            container.innerHTML = '';
-
-            if (viewedIds.length === 0) {
-                recentViewsSection.style.display = 'none';
+            list.innerHTML = '';
+            if (!recentIds || recentIds.length === 0 || !storeData || !storeData.products) {
+                container.style.display = 'none';
                 return;
             }
 
-            recentViewsSection.style.display = 'block';
+            recentIds.forEach(id => {
+                const product = storeData.products.find(p => String(p.id) === String(id));
+                if (!product) return;
+                const card = document.createElement('div');
+                card.className = 'recent-card';
+                card.style.width = '160px';
+                card.style.background = '#111';
+                card.style.padding = '10px';
+                card.style.borderRadius = '6px';
+                card.style.color = '#fff';
+                card.style.textAlign = 'center';
+                card.style.margin = '6px';
+                card.innerHTML = `
+            <a href="product.html?id=${product.id}" style="color:inherit; text-decoration:none;">
+                <div style="height:100px; display:flex; align-items:center; justify-content:center; margin-bottom:8px;">
+                    <img src="${product.image_url || 'assets/img/no-image.png'}" alt="${product.name}" style="max-width:100%; max-height:100%;">
+                </div>
+                <div style="font-size:14px;">${product.name}</div>
+                <div style="color:#ffc107; font-weight:bold; margin-top:6px;">${Number(product.price).toFixed(2)} €</div>
+            </a>
+        `;
+                list.appendChild(card);
+            });
 
-            try {
-                // LLAMADA FINAL A LA API: Obtener detalles completos de los IDs vistos
-                const recentProducts = await ApiService.getRecentProducts(viewedIds, token);
-
-                if (recentProducts.length === 0) {
-                    document.getElementById('no-recent-views').style.display = 'block';
-                    return;
-                }
-
-                document.getElementById('no-recent-views').style.display = 'none';
-
-                // Renderizar los productos devueltos por la API
-                recentProducts.forEach(product => {
-                    const card = document.createElement('div');
-                    card.className = 'product-card';
-                    card.dataset.productId = product.id;
-
-                    // Lógica para la imagen
-                    const imageHtml = product.image_url
-                        ? `<img src="${product.image_url}" alt="${product.name}">`
-                        : '';
-
-                    // El backend ya nos devuelve category_name
-                    card.innerHTML = `
-                        ${imageHtml}
-                        <h4>${product.name}</h4>
-                        <p class="category">${product.category_name} - ${product.formato}</p>
-                        <p class="price">${product.price.toFixed(2)} €</p>
-                        <button class="add-to-cart-btn" data-product-id="${product.id}" 
-                            ${product.stock === 0 ? 'disabled' : ''}>
-                            Añadir
-                        </button>
-                    `;
-                    container.appendChild(card);
-                });
-
-            } catch (error) {
-                console.error('Error al cargar productos vistos:', error);
-                container.innerHTML = `<p style="color: red;">No se pudieron cargar los productos vistos recientemente.</p>`;
-            }
+            container.style.display = 'block';
         }
 
         // -----------------------------------------------------------------
@@ -270,13 +250,11 @@
                     target = target.parentElement;
                 }
                 if (target && target.dataset.productId) {
-                    // Usamos el ID como string (más seguro que parseInt)
                     const productId = target.dataset.productId.trim();
 
-                    // Solo si no estamos haciendo click en el botón (que ya tiene su propia acción)
                     if (!e.target.classList.contains('add-to-cart-btn')) {
-                        StorageManager.addProductViewed(productId);
-                        // Re-renderizamos la sección de vistos inmediatamente
+-                        StorageManager.addProductViewed(productId);
++                        StorageManager.addViewedProduct(productId);
                         renderRecentViews();
                     }
                 }
@@ -314,7 +292,16 @@
             setupCartListeners();
         }
 
-        document.addEventListener('DOMContentLoaded', initDashboard);
+        document.addEventListener('DOMContentLoaded', () => {
+        if (typeof initDashboard === 'function') {
+            initDashboard();
+        } else {
+            // Fallback seguro
+            if (typeof renderProducts === 'function') renderProducts();
+            renderRecentViews();
+        }
+    });
+
     </script>
 </body>
 

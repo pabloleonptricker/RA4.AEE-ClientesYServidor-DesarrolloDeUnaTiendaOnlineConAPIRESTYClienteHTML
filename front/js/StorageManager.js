@@ -2,6 +2,8 @@ const StorageManager = (() => {
     const CART_KEY = 'shopping_cart';
     const AUTH_KEY = 'auth_token';
     const STORE_KEY = 'store_data';
+    const RECENT_KEY = 'recent_products';
+    
     
     // --- Utilidades de Datos ---
 
@@ -77,6 +79,27 @@ const StorageManager = (() => {
         localStorage.removeItem(CART_KEY);
     };
 
+    // --- Gestión de productos vistos ---
+    const addViewedProduct = (productId, limit = 6) => {
+        if (productId == null) return;
+        const current = getViewedProducts();
+        const idStr = String(productId);
+        const idx = current.findIndex(i => String(i) === idStr);
+        if (idx !== -1) current.splice(idx, 1);
+        current.unshift(idStr);
+        if (current.length > limit) current.splice(limit);
+        localStorage.setItem(RECENT_KEY, JSON.stringify(current));
+    };
+
+    const getViewedProducts = () => {
+        const json = localStorage.getItem(RECENT_KEY);
+        return json ? JSON.parse(json) : [];
+    };
+
+    const clearViewedProducts = () => {
+        localStorage.removeItem(RECENT_KEY);
+    };
+
 
     return {
         saveAuthData,
@@ -87,6 +110,10 @@ const StorageManager = (() => {
         getCart,
         addToCart,
         removeFromCart,
-        clearCart
+        clearCart,
+
+        addViewedProduct,
+        getViewedProducts,
+        clearViewedProducts
     };
 })();
